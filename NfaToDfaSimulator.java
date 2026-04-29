@@ -1,24 +1,23 @@
+package PBL;
 import javax.swing.*;
 import java.awt.*;
 import java.util.*;
 
-public class NfaToDfaSimulator extends JFrame {
+//Nfa to Dfa convertor and simulator for string checking
+public class NfaToDfaSimulator extends JFrame
+{
 
-    // input data from user.
     HashSet<String> states = new HashSet<>();
     HashSet<String> finalStates = new HashSet<>();
     String initialState = "";
     HashSet<String> alphabet = new HashSet<>();
 
-    // NFA implementation like state->input symbol->{set of states}
     HashMap<String, HashMap<String, HashSet<String>>> nfa = new HashMap<>();
 
-    // DFA set of NFA states as [q1,q2] --a--> [q2]
     HashMap<Set<String>, HashMap<String, Set<String>>> dfa = new HashMap<>();
     ArrayList<Set<String>> dfaStates = new ArrayList<>();
-    HashSet<Set<String>> dfaFinalStates = new HashSet<>();//If any NFA final state is in the set
+    HashSet<Set<String>> dfaFinalStates = new HashSet<>();
 
-    // GUI
     JTextField statesField, initialField, finalField, alphabetField;
     JTextField fromField, inputField, toField, inputStringField;
     JTextArea outputArea;
@@ -27,15 +26,14 @@ public class NfaToDfaSimulator extends JFrame {
 
     Set<String> currentState;
 
-    public NfaToDfaSimulator() {
+    public NfaToDfaSimulator()
+    {
 
         setTitle("NFA → DFA Simulator");
         setSize(900, 650);
         setLayout(new FlowLayout());
         setDefaultCloseOperation(EXIT_ON_CLOSE);
 
-        // -------- INPUT --------
-        //adds labels
         add(new JLabel("States:"));
         statesField = new JTextField(12); add(statesField);
 
@@ -57,14 +55,13 @@ public class NfaToDfaSimulator extends JFrame {
         add(new JLabel("To:"));
         toField = new JTextField(5); add(toField);
 
-        //adds trigger button
         JButton addBtn = new JButton("Add NFA Transition");
         add(addBtn);
 
         JButton convertBtn = new JButton("Convert to DFA");
         add(convertBtn);
 
-        add(new JLabel("Input String:"));//takes user input JTextField
+        add(new JLabel("Input String:"));
         inputStringField = new JTextField(12); add(inputStringField);
 
         JButton simulateBtn = new JButton("Simulate DFA");
@@ -73,7 +70,6 @@ public class NfaToDfaSimulator extends JFrame {
         outputArea = new JTextArea(8, 50);
         add(new JScrollPane(outputArea));
 
-        //creates area for graph visualization
         drawPanel = new DrawPanel();
         drawPanel.setPreferredSize(new Dimension(800, 300));
         add(drawPanel);
@@ -82,13 +78,13 @@ public class NfaToDfaSimulator extends JFrame {
         convertBtn.addActionListener(e -> convertToDFA());
         simulateBtn.addActionListener(e -> simulate());
 
-        //Make window visible as gui won't show without this
         setVisible(true);
     }
 
-    // -------- SETUP --------
-    void setup() {
-        //using for clearing old values
+    //addition of states and value fixing
+    void setup()
+    {
+
         states.clear();
         finalStates.clear();
         alphabet.clear();
@@ -99,12 +95,13 @@ public class NfaToDfaSimulator extends JFrame {
 
         initialState = initialField.getText().trim();
 
-        for (String s : states) nfa.putIfAbsent(s, new HashMap<>());
-        //so that every state has a transition map
+        for (String s : states) {
+            nfa.putIfAbsent(s, new HashMap<>());
+        }
     }
 
-    // -------- ADD TRANSITION --------
-    void addTransition() {
+    void addTransition()
+    {
 
         setup();
 
@@ -119,9 +116,8 @@ public class NfaToDfaSimulator extends JFrame {
         outputArea.append("NFA: " + from + " --" + input + "--> " + to + "\n");
     }
 
-    // -------- MOVE --------
-    // check no of states where we can go from one state on reading a symbol
-    Set<String> move(Set<String> states, String symbol) {
+    Set<String> move(Set<String> states, String symbol)
+    {
 
         Set<String> result = new HashSet<>();
 
@@ -133,9 +129,9 @@ public class NfaToDfaSimulator extends JFrame {
         return result;
     }
 
-    // -------- CONVERT --------
-    void convertToDFA() {
-        //Subset Algorithm Implementation in this
+    void convertToDFA()
+    {
+
         setup();
 
         dfa.clear();
@@ -145,42 +141,61 @@ public class NfaToDfaSimulator extends JFrame {
         Set<String> start = new HashSet<>();
         start.add(initialState);
 
+        Queue<Set<String>> queue = new LinkedList<>();
+        queue.add(start);
+
         dfaStates.add(start);
 
-        for (int i = 0; i < dfaStates.size(); i++) {
+        while (!queue.isEmpty())
+        {
 
-            Set<String> current = dfaStates.get(i);
+            Set<String> current = queue.poll();
             dfa.putIfAbsent(current, new HashMap<>());
 
             for (String sym : alphabet) {
 
                 Set<String> next = move(current, sym);
 
-                if (!next.isEmpty()) {
-
-                    if (!dfaStates.contains(next))
-                        dfaStates.add(next);
-
-                    dfa.get(current).put(sym, next);
+                if (!dfaStates.contains(next)) {
+                    dfaStates.add(next);
+                    queue.add(next);
                 }
+
+                dfa.get(current).put(sym, next);
             }
         }
 
         // Final states
-        for (Set<String> s : dfaStates) {
-            for (String f : finalStates) {
-                if (s.contains(f)) dfaFinalStates.add(s);
+        for (Set<String> s : dfaStates)
+        {
+            for (String f : finalStates)
+            {
+                if (s.contains(f)) {
+                    dfaFinalStates.add(s);
+                    break;
+                }
             }
         }
 
-        outputArea.append("\n--- DFA Created ---\n");
+        outputArea.append("\n--- DFA TRANSITIONS ---\n");
+
+        for (Set<String> from : dfa.keySet())
+        {
+            for (String sym : dfa.get(from).keySet())
+            {
+                Set<String> to = dfa.get(from).get(sym);
+                outputArea.append(from + " --" + sym + "--> " + to + "\n");
+            }
+        }
+
         drawPanel.repaint();
     }
 
-    // -------- SIMULATE --------
-    void simulate() {
+    void simulate()
+    {
 
-        if (dfaStates.isEmpty()) {
+        if (dfaStates.isEmpty())
+        {
             outputArea.append("Convert to DFA first!\n");
             return;
         }
@@ -217,18 +232,21 @@ public class NfaToDfaSimulator extends JFrame {
         }).start();
     }
 
-    void update() {
+    void update()
+    {
         SwingUtilities.invokeLater(() -> drawPanel.repaint());
     }
 
-    void append(String s) {
+    void append(String s)
+    {
         SwingUtilities.invokeLater(() -> outputArea.append(s + "\n"));
     }
 
-    // -------- DRAW PANEL --------
+    //draw panel for the components of graph
     class DrawPanel extends JPanel {
 
-        protected void paintComponent(Graphics g) {
+        protected void paintComponent(Graphics g)
+        {
             super.paintComponent(g);
 
             Graphics2D g2 = (Graphics2D) g;
@@ -246,7 +264,6 @@ public class NfaToDfaSimulator extends JFrame {
 
             Map<Set<String>, Point> pos = new HashMap<>();
 
-            // -------- MULTI-LAYER LAYOUT --------
             int maxPerLayer = 8;
             int layerGap = 120;
 
@@ -262,13 +279,14 @@ public class NfaToDfaSimulator extends JFrame {
 
                 int radius = 80 + layer * layerGap;
 
-                for (int i = 0; i < statesInLayer && index < totalStates; i++) {
+                for (int i = 0; i < statesInLayer && index < totalStates; i++)
+                {
 
                     Set<String> state = dfaStates.get(index);
 
                     double angle = 2 * Math.PI * i / statesInLayer
                             - Math.PI / 2
-                            + (layer * 0.3); // slight rotation per layer
+                            + (layer * 0.3);
 
                     int x = (int) (centerX + radius * Math.cos(angle));
                     int y = (int) (centerY + radius * Math.sin(angle));
@@ -283,7 +301,6 @@ public class NfaToDfaSimulator extends JFrame {
             int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE;
             int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE;
 
-// Find bounds
             for (Point p : pos.values()) {
                 minX = Math.min(minX, p.x);
                 minY = Math.min(minY, p.y);
@@ -291,25 +308,23 @@ public class NfaToDfaSimulator extends JFrame {
                 maxY = Math.max(maxY, p.y);
             }
 
-// Graph size
             int graphWidth = maxX - minX;
             int graphHeight = maxY - minY;
 
-// Shift to center
             int shiftX = (getWidth() - graphWidth) / 2 - minX;
             int shiftY = (getHeight() - graphHeight) / 2 - minY;
 
-// Apply shift
             for (Point p : pos.values()) {
                 p.x += shiftX;
                 p.y += shiftY;
             }
 
-            // -------- DRAW TRANSITIONS --------
             Map<String, Integer> edgeCount = new HashMap<>();
 
-            for (Set<String> from : dfa.keySet()) {
-                for (String sym : dfa.get(from).keySet()) {
+            for (Set<String> from : dfa.keySet())
+            {
+                for (String sym : dfa.get(from).keySet())
+                {
 
                     Set<String> to = dfa.get(from).get(sym);
 
@@ -320,34 +335,30 @@ public class NfaToDfaSimulator extends JFrame {
 
                     g2.setColor(Color.BLUE);
 
-                    // Unique key for edge pair
                     String edgeKey = from.toString() + "->" + to.toString();
 
                     int count = edgeCount.getOrDefault(edgeKey, 0);
                     edgeCount.put(edgeKey, count + 1);
 
-                    // -------- SELF LOOP --------
                     if (from.equals(to)) {
 
                         int loopX = p1.x;
-                        int loopY = p1.y - 45 - (count * 15); // stack loops
+                        int loopY = p1.y - 45 - (count * 15);
 
                         g2.drawOval(loopX - 18, loopY - 18, 36, 36);
-
                         g2.drawString(sym, loopX - 6, loopY - 25);
 
                         drawArrowHead(g2, loopX, loopY - 18, loopX + 1, loopY - 18);
 
                     } else {
 
-                        // -------- CURVE OFFSET BASED ON COUNT --------
                         double dx = p2.x - p1.x;
                         double dy = p2.y - p1.y;
 
                         double len = Math.sqrt(dx * dx + dy * dy);
                         if (len == 0) len = 1;
 
-                        double baseOffset = 40 + (count * 20); // separate edges
+                        double baseOffset = 40 + (count * 20);
 
                         double offsetX = -dy / len * baseOffset;
                         double offsetY = dx / len * baseOffset;
@@ -361,11 +372,9 @@ public class NfaToDfaSimulator extends JFrame {
 
                         g2.draw(curve);
 
-                        // -------- BETTER LABEL POSITION --------
                         int labelX = (int) ((p1.x + ctrlX + p2.x) / 3);
                         int labelY = (int) ((p1.y + ctrlY + p2.y) / 3);
 
-                        // small shift to avoid overlap
                         labelX += count * 10;
                         labelY -= count * 5;
 
@@ -376,8 +385,8 @@ public class NfaToDfaSimulator extends JFrame {
                 }
             }
 
-            // -------- DRAW STATES --------
-            for (Set<String> s : dfaStates) {
+            for (Set<String> s : dfaStates)
+            {
 
                 Point p = pos.get(s);
 
@@ -392,7 +401,6 @@ public class NfaToDfaSimulator extends JFrame {
                     g2.drawOval(p.x - 35, p.y - 35, 70, 70);
                 }
 
-                // centered text
                 String label = s.toString();
                 FontMetrics fm = g2.getFontMetrics();
                 int textWidth = fm.stringWidth(label);
@@ -401,7 +409,7 @@ public class NfaToDfaSimulator extends JFrame {
             }
         }
 
-        // -------- ARROWHEAD --------
+        //adding arrowhead to the the graph transitions
         void drawArrowHead(Graphics2D g2, int x1, int y1, int x2, int y2) {
 
             double phi = Math.toRadians(25);
@@ -424,3 +432,4 @@ public class NfaToDfaSimulator extends JFrame {
         new NfaToDfaSimulator();
     }
 }
+
